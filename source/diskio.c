@@ -54,12 +54,12 @@
 #define DUMMY_CYCLES 10
 #define SECTOR_SIZE 512
 
-#define ERASE_TIMEOUT_MS 30000
+#define ERASE_WAIT_RETRIES 30000
 #define SD_INIT_TIMEOUT_MS 1000
 #define SD_PKT_TIMEOUT_MS 200
 #define SD_SPI_DELAY_MS 10
-#define SD_WAIT_RDY_MS 500
-#define WAIT_NUM_BYTES_MAX 10
+#define SD_WAIT_RDY_RETRIES 5000
+#define WAIT_NUM_BYTES_MAX 20
 
 /* MMC/SD command (SPI mode) */
 typedef enum
@@ -114,16 +114,19 @@ static SdSpiFuncs* sd_funcs = NULL;
 /* Wait for card ready                                                   */
 /*-----------------------------------------------------------------------*/
 
-static bool waitRdy(uint32_t wait_ms)    /* 1:OK, 0:Timeout */
+static bool waitRdy(uint32_t retries)    /* 1:OK, 0:Timeout */
 {
     bool ready = false;
 
-    sd_funcs->sd_set_timeout(wait_ms);
-    while (!ready && !(sd_funcs->sd_timeout_triggered))
+    for (uint32_t i = retries; !ready && i; i--)
     {
         if (sd_funcs->sd_xchg_fn(DUMMY_BYTE) == DUMMY_BYTE)
         {
             ready = true;
+        }
+        else
+        {
+            CyDelayUs(100);
         }
     }
 
@@ -152,7 +155,7 @@ static bool select(void)    /* 1:OK, 0:Timeout */
     // Force DO enabled
     sd_funcs->sd_xchg_fn(DUMMY_BYTE);
 
-    if (waitRdy(SD_WAIT_RDY_MS))
+    if (waitRdy(SD_WAIT_RDY_RETRIES))
     {
         selected = true;
     }
@@ -202,7 +205,7 @@ static bool sendDataBlock(const BYTE* buff, BYTE token)    /* 1:OK, 0:Failed */
 {
     bool sent = false;
 
-    if (waitRdy(SD_WAIT_RDY_MS))
+    if (waitRdy(SD_WAIT_RDY_RETRIES))
     {
         sd_funcs->sd_xchg_fn(token);
 
@@ -273,12 +276,12 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)        /* Returns command response (bit
         }
         sd_funcs->sd_xchg_fn(n);
 
-        if (cmd == READ_MULTIPLE_BLOCK)
+        if (cmd == STOP_TRANSMISSION)
         {
             sd_funcs->sd_xchg_fn(DUMMY_BYTE);
         }
 
-        for (n = WAIT_NUM_BYTES_MAX, res = 0;
+        for (n = WAIT_NUM_BYTES_MAX, res = FAILED_TO_SEND_MSK;
             (res & FAILED_TO_SEND_MSK) && n;
             n--)
         {
@@ -465,7 +468,7 @@ static DRESULT ctrlTrim(BYTE drv, void* buff)
         if (!sendCmd(ERASE_ER_BLK_START, start) &&
             !sendCmd(ERASE_ER_BLK_END, end) &&
             !sendCmd(ERASE, 0) &&
-            waitRdy(ERASE_TIMEOUT_MS))
+            waitRdy(ERASE_WAIT_RETRIES))
         {
             res = RES_OK;
         }
@@ -504,8 +507,8 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
     DSTATUS s = stat;
     if (!drv)
     {
-        sd_funcs->slow_sd_fn();
-        sd_funcs->deselect_sd_fn();
+        // sd_funcs->slow_sd_fn();
+        // sd_funcs->deselect_sd_fn();
         sd_funcs->sd_set_timeout(SD_SPI_DELAY_MS);
         while (!(sd_funcs->sd_timeout_triggered()));
 
