@@ -55,11 +55,11 @@
 #define DUMMY_CYCLES 10
 #define SECTOR_SIZE 512
 
-#define ERASE_WAIT_RETRIES 30000
+#define ERASE_TIMEOUT_MS 30000
 #define SD_INIT_TIMEOUT_MS 1000
 #define SD_PKT_TIMEOUT_MS 200
 #define SD_SPI_DELAY_MS 10
-#define SD_WAIT_RDY_RETRIES 5000
+#define SD_WAIT_RDY_MS 500
 #define WAIT_NUM_BYTES_MAX 20
 
 /* MMC/SD command (SPI mode) */
@@ -123,19 +123,16 @@ static SdSpiFuncs* sd_funcs = NULL;
 /* Wait for card ready                                                   */
 /*-----------------------------------------------------------------------*/
 
-static bool waitRdy(uint32_t retries)    /* 1:OK, 0:Timeout */
+static bool waitRdy(uint32_t wait_ms)    /* 1:OK, 0:Timeout */
 {
     bool ready = false;
 
-    for (uint32_t i = retries; !ready && i; i--)
+    sd_funcs->sd_set_timeout(wait_ms);
+    while (!ready && !(sd_funcs->sd_timeout_triggered()))
     {
         if (sd_funcs->sd_xchg_fn(DUMMY_BYTE) == DUMMY_BYTE)
         {
             ready = true;
-        }
-        else
-        {
-            CyDelayUs(100);
         }
     }
 
@@ -164,7 +161,7 @@ static bool select(void)    /* 1:OK, 0:Timeout */
     // Force DO enabled
     sd_funcs->sd_xchg_fn(DUMMY_BYTE);
 
-    if (waitRdy(SD_WAIT_RDY_RETRIES))
+    if (waitRdy(SD_WAIT_RDY_MS))
     {
         selected = true;
     }
@@ -214,7 +211,7 @@ static bool sendDataBlock(const BYTE* buff, BYTE token)    /* 1:OK, 0:Failed */
 {
     bool sent = false;
 
-    if (waitRdy(SD_WAIT_RDY_RETRIES))
+    if (waitRdy(SD_WAIT_RDY_MS))
     {
         sd_funcs->sd_xchg_fn(token);
 
@@ -479,7 +476,7 @@ static DRESULT ctrlTrim(BYTE drv, void* buff)
         if (!sendCmd(ERASE_ER_BLK_START, start) &&
             !sendCmd(ERASE_ER_BLK_END, end) &&
             !sendCmd(ERASE, 0) &&
-            waitRdy(ERASE_WAIT_RETRIES))
+            waitRdy(ERASE_TIMEOUT_MS))
         {
             res = RES_OK;
         }
@@ -518,8 +515,6 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
     DSTATUS s = stat;
     if (!drv)
     {
-        // sd_funcs->slow_sd_fn();
-        // sd_funcs->deselect_sd_fn();
         sd_funcs->sd_set_timeout(SD_SPI_DELAY_MS);
         while (!(sd_funcs->sd_timeout_triggered()));
 
