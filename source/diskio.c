@@ -49,6 +49,7 @@
 #define SD_V2_ARG 0x1AA
 #define SEND_IF_COND_CRC 0x87
 
+#define CMD_LEN 6
 #define CSD_LEN 16
 #define CSD_TRAILING_DATA_LEN 48
 #define DUMMY_CYCLES 10
@@ -86,6 +87,14 @@ typedef enum
     SDC_WR_BLK_ERASE_COUNT = 0x80 + 23,
     SDC_SEND_OP_COND = 0x80 + 41,
 } SD_SPI_CMD;
+
+typedef enum
+{
+    CMD_POS = 0,
+    ARG_POS = 1,
+    CRC_POS = 5,
+    NUM_CMD_PKT_BITS
+} CMD_PKT_POS;
 
 typedef enum
 {
@@ -256,34 +265,36 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)        /* Returns command response (bit
 
     if (res <= 1)
     {
-        sd_funcs->sd_xchg_fn(cmd | START_MSK);
-        sd_funcs->sd_xchg_fn((BYTE)(arg >> 24));
-        sd_funcs->sd_xchg_fn((BYTE)(arg >> 16));
-        sd_funcs->sd_xchg_fn((BYTE)(arg >> 8));
-        sd_funcs->sd_xchg_fn((BYTE)arg);
+        uint8_t buf[CMD_LEN] = {
+            cmd | START_MSK,
+            (BYTE)(arg >> 24),
+            (BYTE)(arg >> 16),
+            (BYTE)(arg >> 8),
+            (BYTE)arg,
+            DUMMY_CRC
+        };
 
-        BYTE n = DUMMY_CRC;
         switch (cmd)
         {
             case GO_IDLE_STATE:
-                n = GO_IDLE_STATE_CRC;
+                buf[CRC_POS] = GO_IDLE_STATE_CRC;
                 break;
             case SEND_IF_COND:
-                n = SEND_IF_COND_CRC;
+                buf[CRC_POS] = SEND_IF_COND_CRC;
                 break;
             default:
                 break;
         }
-        sd_funcs->sd_xchg_fn(n);
+        sd_funcs->sd_tx_fn(buf, NUM_CMD_PKT_BITS);
 
         if (cmd == STOP_TRANSMISSION)
         {
             sd_funcs->sd_xchg_fn(DUMMY_BYTE);
         }
 
-        for (n = WAIT_NUM_BYTES_MAX, res = FAILED_TO_SEND_MSK;
-            (res & FAILED_TO_SEND_MSK) && n;
-            n--)
+        for (buf[CRC_POS] = WAIT_NUM_BYTES_MAX, res = FAILED_TO_SEND_MSK;
+            (res & FAILED_TO_SEND_MSK) && buf[CRC_POS];
+            buf[CRC_POS]--)
         {
             res = sd_funcs->sd_xchg_fn(DUMMY_BYTE);
         }
