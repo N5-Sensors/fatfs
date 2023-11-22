@@ -119,10 +119,14 @@ static CARD_TYPE card_type = CT_UNK;
 
 static SdSpiFuncs* sd_funcs = NULL;
 
-/*-----------------------------------------------------------------------*/
-/* Wait for card ready                                                   */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Waits for the SD card to be ready for proceeding
+ * 
+ * @param wait_ms[in] The timeout in milliseconds waiting for the SD card to be ready
+ * 
+ * @return true the SD card was able to be ready before the timeout
+ * @return false the SD card was not able to be ready before the timeout
+ */
 static bool waitRdy(uint32_t wait_ms)    /* 1:OK, 0:Timeout */
 {
     bool ready = false;
@@ -139,20 +143,23 @@ static bool waitRdy(uint32_t wait_ms)    /* 1:OK, 0:Timeout */
     return ready;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Deselect the card and release SPI bus                                 */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Deselects the SD card from SPI communication
+ * 
+ */
 static void deselect(void)
 {
     sd_funcs->deselect_sd_fn();
     sd_funcs->sd_xchg_fn(DUMMY_BYTE);
 }
 
-/*-----------------------------------------------------------------------*/
-/* Select the card and wait for ready                                    */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Selects the SD card for SPI communication and waits 
+ *  for it to be ready
+ * 
+ * @return true the SD was selected and ready for actions
+ * @return false the SD failed to be selected.
+ */
 static bool select(void)    /* 1:OK, 0:Timeout */
 {
     bool selected = false;
@@ -173,10 +180,15 @@ static bool select(void)    /* 1:OK, 0:Timeout */
     return selected;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Receive a data packet from the card                                   */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Receive a data packet from the SD card
+ * 
+ * @param buff[out] the buff to store the data
+ * @param btr[in] the data length
+ * 
+ * @return true received the data packet
+ * @return false failed to receive the data packet
+ */
 static bool receivedDataBlock(BYTE *buff, UINT btr)
 {
     bool received = false;
@@ -203,11 +215,16 @@ static bool receivedDataBlock(BYTE *buff, UINT btr)
     return received;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Send a data packet to the card                                        */
-/*-----------------------------------------------------------------------*/
-
-static bool sendDataBlock(const BYTE* buff, BYTE token)    /* 1:OK, 0:Failed */
+/**
+ * @brief Send a data packet to the SD card
+ * 
+ * @param buff[in] the data to send 
+ * @param token[in] the command for how to handle the data
+ * 
+ * @return true successfully sent the data
+ * @return false failed to send the data
+ */
+static bool sendDataBlock(const BYTE* buff, BYTE token)
 {
     bool sent = false;
 
@@ -234,11 +251,15 @@ static bool sendDataBlock(const BYTE* buff, BYTE token)    /* 1:OK, 0:Failed */
     return sent;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Send a command packet to the card                                     */
-/*-----------------------------------------------------------------------*/
-
-static BYTE sendCmd(BYTE cmd, DWORD arg)        /* Returns command response (bit7==1:Send failed)*/
+/**
+ * @brief Sends the SD card command
+ * 
+ * @param cmd[in] the SD card command
+ * @param arg[in] the argument for the command
+ * 
+ * @return BYTE the result from the SD card
+ */
+static BYTE sendCmd(BYTE cmd, DWORD arg)
 {
     BYTE res = 0;
 
@@ -300,6 +321,11 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)        /* Returns command response (bit
     return res;
 }
 
+/**
+ * @brief Get the DWORD byte by byte since the difference with endianess
+ * 
+ * @return DWORD the DWORD
+ */
 static DWORD getDword(void)
 {
     DWORD word = 0;
@@ -312,6 +338,11 @@ static DWORD getDword(void)
     return word;
 }
 
+/**
+ * @brief Determines what card type the SD card is
+ * 
+ * @return CARD_TYPE the SD card type
+ */
 static CARD_TYPE determineCardType(void)
 {
     CARD_TYPE type = CT_UNK;
@@ -363,6 +394,13 @@ static CARD_TYPE determineCardType(void)
     return type;
 }
 
+/**
+ * @brief Gets the sector count from the SD
+ * 
+ * @param buff[out] the buffer to store the sector count
+ * 
+ * @return DRESULT non-zero result for no errors
+ */
 static DRESULT getSectorCnt(void* buff)
 {
     DRESULT res = RES_ERROR;
@@ -403,6 +441,13 @@ static DRESULT getSectorCnt(void* buff)
     return res;
 }
 
+/**
+ * @brief Gets the block size of the SD sectors
+ * 
+ * @param buff[out] the buffer to store the block size of the SD sectors
+ * 
+ * @return DRESULT non-zero result for no errors
+ */
 static DRESULT getBlockSize(void* buff)
 {
     DRESULT res = RES_ERROR;
@@ -454,6 +499,14 @@ static DRESULT getBlockSize(void* buff)
     return res;
 }
 
+/**
+ * @brief Controls the erasing of the SD card data
+ * 
+ * @param drv[in] the drive to erase
+ * @param buff[in] the start and end location for the erasing
+ * 
+ * @return DRESULT non-zero result for no errors
+ */
 static DRESULT ctrlTrim(BYTE drv, void* buff)
 {
     DRESULT res = RES_ERROR;
@@ -491,10 +544,13 @@ static DRESULT ctrlTrim(BYTE drv, void* buff)
 
 ---------------------------------------------------------------------------*/
 
-/*-----------------------------------------------------------------------*/
-/* Get Disk Status                                                       */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Gets the status of the disk
+ * 
+ * @param drv[in] the drive number
+ * 
+ * @return DSTATUS non-zero for no errors
+ */
 DSTATUS disk_status(BYTE drv) /* Drive number (always 0) */
 {
     DSTATUS s = stat;
@@ -506,10 +562,13 @@ DSTATUS disk_status(BYTE drv) /* Drive number (always 0) */
     return s;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Initialize Disk Drive                                                 */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Initializes the SD card
+ * 
+ * @param drv[in] the drive letter
+ * 
+ * @return DSTATUS non-zero for no errors
+ */
 DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
 {
     DSTATUS s = stat;
@@ -547,10 +606,16 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
     return s;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Read Sector(s)                                                        */
-/*-----------------------------------------------------------------------*/
-
+/**
+ * @brief Reads from the SD card
+ * 
+ * @param drv[in] the drive number
+ * @param buff[out] the buffer to store the data read
+ * @param sector[in] the starting sector
+ * @param count[in] the number of sectors to read
+ *  
+ * @return DRESULT 
+ */
 DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count) /* Physical drive nmuber (0) */
 {
     DRESULT res = RES_OK;
@@ -599,16 +664,17 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count) /* Physical dr
     return res;
 }
 
-/*-----------------------------------------------------------------------*/
-/* Write Sector(s)                                                       */
-/*-----------------------------------------------------------------------*/
-
-DRESULT disk_write (
-    BYTE drv,            /* Physical drive nmuber (0) */
-    const BYTE *buff,    /* Pointer to the data to be written */
-    DWORD sector,        /* Start sector number (LBA) */
-    UINT count            /* Sector count (1..128) */
-)
+/**
+ * @brief Writes to the SD card
+ * 
+ * @param drv[in] the drive number
+ * @param buff[in] the data to write 
+ * @param sector[in] the starting sector
+ * @param count[in] the number of sectors to write
+ * 
+ * @return DRESULT non-zero for no errors
+ */
+DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, UINT count)
 {
     DRESULT res = RES_OK;
     if (drv || !count)
@@ -665,16 +731,16 @@ DRESULT disk_write (
     return res;
 }
 
-
-/*-----------------------------------------------------------------------*/
-/* Miscellaneous Functions                                               */
-/*-----------------------------------------------------------------------*/
-
-DRESULT disk_ioctl (
-    BYTE drv,        /* Physical drive nmuber (0) */
-    BYTE ctrl,        /* Control code */
-    void* buff        /* Buffer to send/receive control data */
-)
+/**
+ * @brief Miscellaneous functions for the SD card
+ * 
+ * @param drv[in] the drive letter
+ * @param ctrl[in] the control code 
+ * @param buff[in,out] the buff for sending/storing the data
+ *  
+ * @return DRESULT non-zero for no errors
+ */
+DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void* buff)
 {
     DRESULT res = RES_ERROR;
     if (drv)
@@ -715,6 +781,11 @@ DRESULT disk_ioctl (
     return res;
 }
 
+/**
+ * @brief Sets the SD card functions to use
+ * 
+ * @param funcs[in] the SD card functions definitions to use
+ */
 void setSdSpiFuncts(SdSpiFuncs* funcs)
 {
     sd_funcs = funcs;
