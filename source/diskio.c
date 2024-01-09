@@ -469,9 +469,10 @@ static DRESULT getBlockSize(void* buff)
             }
         }    
     }
-    else
+    else if ((sendCmd(SEND_CSD, 0) == 0) && receivedDataBlock(csd, CSD_LEN))
     {
-        if ((sendCmd(SEND_CSD, 0) == 0) && receivedDataBlock(csd, CSD_LEN))
+        DWORD block_size = 0;
+        if (card_type & CT_SD1)
         {
             DWORD block_size = 0;
             if (card_type & CT_SD1)
@@ -491,6 +492,16 @@ static DRESULT getBlockSize(void* buff)
             *(DWORD*)buff = block_size;
             res = RES_OK;
         }
+        else
+        {
+            block_size = (csd[11] & 0x03) << 3;
+            block_size += (csd[11] & 0xE0) >> 5;
+            block_size++;
+            block_size *= ((csd[10] & 0x7C) >> 2) + 1;
+        }
+
+        *(DWORD*)buff = block_size;
+        res = RES_OK;
     }
 
     return res;
@@ -639,16 +650,13 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, UINT count) /* Physical dr
                 count = 0;
             }
         }
-        else
+        else if (sendCmd(READ_MULTIPLE_BLOCK, sector) == 0)
         {
-            if (sendCmd(READ_MULTIPLE_BLOCK, sector) == 0)
+            for (; count && receivedDataBlock(buff, SECTOR_SIZE); count--)
             {
-                for (; count && receivedDataBlock(buff, SECTOR_SIZE); count--)
-                {
-                    buff += SECTOR_SIZE;
-                }
-                sendCmd(STOP_TRANSMISSION, 0);
+                buff += SECTOR_SIZE;
             }
+            sendCmd(STOP_TRANSMISSION, 0);
         }
         deselect();
 
