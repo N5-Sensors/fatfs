@@ -269,15 +269,12 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)
         res = sendCmd(APP_CMD, 0);
     }
 
-    if (res <= 1)
+    if ((res <= 1) && (cmd != STOP_TRANSMISSION))
     {
-        if (cmd != STOP_TRANSMISSION)
+        deselect();
+        if (!select())
         {
-            deselect();
-            if (!select())
-            {
-                res = 0xFF;
-            }
+            res = 0xFF;
         }
     }
 
