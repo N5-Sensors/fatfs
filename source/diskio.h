@@ -9,6 +9,10 @@
 extern "C" {
 #endif
 
+#include "ff.h"
+
+#include <stdbool.h>
+
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
 
@@ -69,6 +73,23 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define ATA_GET_REV			20	/* Get F/W revision */
 #define ATA_GET_MODEL		21	/* Get model name */
 #define ATA_GET_SN			22	/* Get serial number */
+
+typedef struct 
+{
+    void (*select_sd_fn)(void);
+    void (*deselect_sd_fn)(void);
+    void (*slow_sd_fn)(void);
+    void (*fast_sd_fn)(void);
+
+    BYTE (*sd_xchg_fn)(BYTE);
+    void (*sd_rx_fn)(BYTE*, DWORD);
+    void (*sd_tx_fn)(const BYTE*, DWORD);
+
+    void (*sd_set_timeout)(uint32_t);
+    bool (*sd_timeout_triggered)(void);
+} SdSpiFuncs;
+
+void setSdSpiFuncts(SdSpiFuncs* funcs);
 
 #ifdef __cplusplus
 }
