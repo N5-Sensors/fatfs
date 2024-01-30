@@ -358,7 +358,7 @@ static BYTE send_cmd(BYTE cmd,	DWORD arg)		/* Returns command response (bit7==1:
 /* Get Disk Status                                                       */
 /*-----------------------------------------------------------------------*/
 
-DSTATUS sd_disk_status(BYTE drv) /* Drive number (always 0) */
+DSTATUS disk_status(BYTE drv) /* Drive number (always 0) */
 {
 	if (drv) return STA_NOINIT;
 
@@ -369,7 +369,7 @@ DSTATUS sd_disk_status(BYTE drv) /* Drive number (always 0) */
 /* Initialize Disk Drive                                                 */
 /*-----------------------------------------------------------------------*/
 
-DSTATUS sd_disk_initialize(BYTE drv) /* Physical drive nmuber (0) */
+DSTATUS disk_initialize(BYTE drv) /* Physical drive nmuber (0) */
 {
 	BYTE n, ty, cmd, buf[4];
 	UINT tmr;
@@ -422,7 +422,7 @@ DSTATUS sd_disk_initialize(BYTE drv) /* Physical drive nmuber (0) */
 /* Read Sector(s)                                                        */
 /*-----------------------------------------------------------------------*/
 
-DRESULT sd_disk_read(BYTE drv,	BYTE *buff,	DWORD sector, UINT count) /* Physical drive nmuber (0) */
+DRESULT disk_read(BYTE drv,	BYTE *buff,	DWORD sector, UINT count) /* Physical drive nmuber (0) */
 {
 	BYTE cmd;
 
@@ -446,7 +446,7 @@ DRESULT sd_disk_read(BYTE drv,	BYTE *buff,	DWORD sector, UINT count) /* Physical
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-DRESULT sd_disk_write (
+DRESULT disk_write (
 	BYTE drv,			/* Physical drive nmuber (0) */
 	const BYTE *buff,	/* Pointer to the data to be written */
 	DWORD sector,		/* Start sector number (LBA) */
@@ -482,7 +482,7 @@ DRESULT sd_disk_write (
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-DRESULT sd_disk_ioctl (
+DRESULT disk_ioctl (
 	BYTE drv,		/* Physical drive nmuber (0) */
 	BYTE ctrl,		/* Control code */
 	void *buff		/* Buffer to send/receive control data */
