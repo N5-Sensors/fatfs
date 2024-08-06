@@ -49,7 +49,6 @@
 #define SD_V2_ARG 0x1AA
 #define SEND_IF_COND_CRC 0x87
 
-#define CMD_LEN 6
 #define CSD_LEN 16
 #define CSD_TRAILING_DATA_LEN 48
 #define DUMMY_CYCLES 10
@@ -280,7 +279,7 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)
 
     if (res <= 1)
     {
-        uint8_t buf[CMD_LEN] = {
+        uint8_t buf[NUM_CMD_PKT_BITS] = {
             cmd | START_MSK,
             (BYTE)(arg >> 24),
             (BYTE)(arg >> 16),
@@ -587,7 +586,6 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
 
         if (!(s & STA_NODISK))
         {
-            sd_funcs->slow_sd_fn();
             for (uint8_t i = DUMMY_CYCLES; i; i--)
             {
                 sd_funcs->sd_xchg_fn(DUMMY_BYTE);
@@ -599,7 +597,6 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
             s = STA_NOINIT;
             if (card_type)
             {
-                sd_funcs->fast_sd_fn();
                 s &= ~STA_NOINIT;
             }
 

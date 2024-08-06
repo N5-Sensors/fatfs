@@ -78,8 +78,6 @@ typedef struct
 {
     void (*select_sd_fn)(void);
     void (*deselect_sd_fn)(void);
-    void (*slow_sd_fn)(void);
-    void (*fast_sd_fn)(void);
 
     BYTE (*sd_xchg_fn)(BYTE);
     void (*sd_rx_fn)(BYTE*, DWORD);
