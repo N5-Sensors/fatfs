@@ -3793,7 +3793,7 @@ FRESULT f_open (
 #endif
 				{
 					/* Set directory entry initial state */
-					tm = GET_FATTIME();					/* Set created time */
+					//tm = GET_FATTIME();					/* Set created time */
 					st_dword(dj.dir + DIR_CrtTime, tm);
 					st_dword(dj.dir + DIR_ModTime, tm);
 					cl = ld_clust(fs, dj.dir);			/* Get current cluster chain */
@@ -4154,7 +4154,7 @@ FRESULT f_sync (
 			}
 #endif
 			/* Update the directory entry */
-			tm = GET_FATTIME();				/* Modified time */
+			//tm = GET_FATTIME();				/* Modified time */
 #if FF_FS_EXFAT
 			if (fs->fs_type == FS_EXFAT) {
 				res = fill_first_frag(&fp->obj);	/* Fill first fragment on the FAT if needed */
@@ -6025,7 +6025,7 @@ FRESULT f_mkfs (
 		fsty = FS_FAT16;
 	} while (0);
 
-	vsn = (DWORD)sz_vol + GET_FATTIME();	/* VSN generated from current time and partitiion size */
+	vsn = (DWORD)sz_vol;// + GET_FATTIME();	/* VSN generated from current time and partitiion size */
 
 #if FF_FS_EXFAT
 	if (fsty == FS_EXFAT) {	/* Create an exFAT volume */
