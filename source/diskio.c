@@ -349,7 +349,9 @@ static CARD_TYPE determineCardType(void)
         if (sendCmd(SEND_IF_COND, SD_V2_ARG) == 1)
         {
             // Checks the OCR register for the supported voltages of 2.7-3.6V
-            if ((getDword() & SD_V2_ARG) == SD_V2_ARG)
+            uint32_t ocr = 0;
+            sd_funcs->sd_rx_fn((BYTE*)&ocr, sizeof(uint32_t));
+            if ((__builtin_bswap32(ocr) & SD_V2_ARG) == SD_V2_ARG)
             {
                 // Wait for the end of initialization
                 while (!(sd_funcs->sd_timeout_triggered()) &&
@@ -359,7 +361,9 @@ static CARD_TYPE determineCardType(void)
                     sendCmd(READ_OCR, 0) == 0)
                 {
                     type = CT_SD2;
-                    if (getDword() & BLOCK_ADDRESSING_MSK)
+                    ocr = 0;
+                    sd_funcs->sd_rx_fn((BYTE*)&ocr, sizeof(uint32_t));
+                    if (__builtin_bswap32(ocr) & BLOCK_ADDRESSING_MSK)
                     {
                         type |= CT_BLOCK;
                     }
