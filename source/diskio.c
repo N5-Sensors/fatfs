@@ -318,23 +318,6 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)
 }
 
 /**
- * @brief Get the DWORD byte by byte since the difference with endianess
- * 
- * @return DWORD the DWORD
- */
-static DWORD getDword(void)
-{
-    DWORD word = 0;
-    for (uint8_t i = 0; i < sizeof(word); i++)
-    {
-        word |= sd_funcs->sd_xchg_fn(DUMMY_BYTE);
-        word <<= 8;
-    }
-
-    return word;
-}
-
-/**
  * @brief Determines what card type the SD card is
  * 
  * @return CARD_TYPE the SD card type
