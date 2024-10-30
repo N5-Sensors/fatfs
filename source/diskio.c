@@ -49,7 +49,6 @@
 #define SD_V2_ARG 0x1AA
 #define SEND_IF_COND_CRC 0x87
 
-#define CMD_LEN 6
 #define CSD_LEN 16
 #define CSD_TRAILING_DATA_LEN 48
 #define DUMMY_CYCLES 10
@@ -280,7 +279,7 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)
 
     if (res <= 1)
     {
-        uint8_t buf[CMD_LEN] = {
+        uint8_t buf[NUM_CMD_PKT_BITS] = {
             cmd | START_MSK,
             (BYTE)(arg >> 24),
             (BYTE)(arg >> 16),
@@ -319,23 +318,6 @@ static BYTE sendCmd(BYTE cmd, DWORD arg)
 }
 
 /**
- * @brief Get the DWORD byte by byte since the difference with endianess
- * 
- * @return DWORD the DWORD
- */
-static DWORD getDword(void)
-{
-    DWORD word = 0;
-    for (uint8_t i = 0; i < sizeof(word); i++)
-    {
-        word |= sd_funcs->sd_xchg_fn(DUMMY_BYTE);
-        word <<= 8;
-    }
-
-    return word;
-}
-
-/**
  * @brief Determines what card type the SD card is
  * 
  * @return CARD_TYPE the SD card type
@@ -350,7 +332,9 @@ static CARD_TYPE determineCardType(void)
         if (sendCmd(SEND_IF_COND, SD_V2_ARG) == 1)
         {
             // Checks the OCR register for the supported voltages of 2.7-3.6V
-            if ((getDword() & SD_V2_ARG) == SD_V2_ARG)
+            uint32_t ocr = 0;
+            sd_funcs->sd_rx_fn((BYTE*)&ocr, sizeof(uint32_t));
+            if ((__builtin_bswap32(ocr) & SD_V2_ARG) == SD_V2_ARG)
             {
                 // Wait for the end of initialization
                 while (!(sd_funcs->sd_timeout_triggered()) &&
@@ -360,7 +344,9 @@ static CARD_TYPE determineCardType(void)
                     sendCmd(READ_OCR, 0) == 0)
                 {
                     type = CT_SD2;
-                    if (getDword() & BLOCK_ADDRESSING_MSK)
+                    ocr = 0;
+                    sd_funcs->sd_rx_fn((BYTE*)&ocr, sizeof(uint32_t));
+                    if (__builtin_bswap32(ocr) & BLOCK_ADDRESSING_MSK)
                     {
                         type |= CT_BLOCK;
                     }
@@ -587,7 +573,6 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
 
         if (!(s & STA_NODISK))
         {
-            sd_funcs->slow_sd_fn();
             for (uint8_t i = DUMMY_CYCLES; i; i--)
             {
                 sd_funcs->sd_xchg_fn(DUMMY_BYTE);
@@ -599,7 +584,6 @@ DSTATUS disk_initialize(BYTE drv) /* Physical drive number (0) */
             s = STA_NOINIT;
             if (card_type)
             {
-                sd_funcs->fast_sd_fn();
                 s &= ~STA_NOINIT;
             }
 
