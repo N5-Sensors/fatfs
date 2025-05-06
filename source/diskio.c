@@ -28,8 +28,7 @@
 /* Platform dependent macros and functions needed to be modified           */
 /*-------------------------------------------------------------------------*/
 
-#include <project.h>
-#include <cytypes.h>
+#include <stdio.h>
 
 /*--------------------------------------------------------------------------
 
