@@ -268,7 +268,7 @@
 /  set 1, the file created time is available in FILINFO structure. */
 
 
-#define FF_FS_NOFSINFO	0
+#define FF_FS_NOFSINFO	1
 /* If you need to know the correct free space on the FAT32 volume, set bit 0 of
 /  this option, and f_getfree() on the first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
